@@ -14,26 +14,40 @@ def load_graph_simple(filename):
     return n, adj, start, end
 
 def solve_dijkstra(n, adj, start, end, mode='x'):
-    distances = [float('inf')] * n
-    parent = [-1] * n  # ДОБАВЛЕНО: для отслеживания пути
-    distances[start] = 0
-    pq = [(0, start)]
+    # Теперь храним пару: (суммарная стоимость, количество ребер)
+    # Инициализируем бесконечностью для обоих параметров
+    distances = [(float('inf'), float('inf'))] * n
+    parent = [-1] * n
+    
+    # Стартовая точка: стоимость 0, количество ребер 0
+    distances[start] = (0, 0)
+    # В приоритетную очередь кладем (стоимость, количество_ребер, узел)
+    pq = [(0, 0, start)]
     
     while pq:
-        current_dist, u = heapq.heappop(pq)
-        if u == end: break
-        if current_dist > distances[u]: continue
+        current_cost, current_edges, u = heapq.heappop(pq)
+        
+        if u == end: 
+            break
+            
+        # Проверка актуальности текущей пары критериев
+        if (current_cost, current_edges) > distances[u]:
+            continue
             
         for v, l, r, x in adj[u]:
             weight = x if mode == 'x' else (l + r) / 2
-            distance = current_dist + weight
             
-            if distance < distances[v]:
-                distances[v] = distance
-                parent[v] = u  # ДОБАВЛЕНО: запоминаем откуда пришли
-                heapq.heappush(pq, (distance, v))
+            new_cost = current_cost + weight
+            new_edges = current_edges + 1 # Каждое новое ребро инкрементирует счетчик
+            
+            # Магия сравнения кортежей: 
+            # Сначала сравнится new_cost, если они равны — сравнится new_edges
+            if (new_cost, new_edges) < distances[v]:
+                distances[v] = (new_cost, new_edges)
+                parent[v] = u
+                heapq.heappush(pq, (new_cost, new_edges, v))
                 
-    # Восстанавливаем путь
+    # Восстановление пути (остается прежним)
     path = []
     curr = end
     while curr != -1:
@@ -41,9 +55,13 @@ def solve_dijkstra(n, adj, start, end, mode='x'):
         curr = parent[curr]
     path.reverse()
     
-    path_length = len(path) - 1 if len(path) > 1 else 0
+    final_cost, final_length = distances[end]
     
-    return distances[end], path_length
+    # Если путь не найден (осталась бесконечность), возвращаем 0
+    if final_cost == float('inf'):
+        return float('inf'), 0
+        
+    return final_cost, final_length
 
 def run_oracle():
     dataset_dir = "dataset"
